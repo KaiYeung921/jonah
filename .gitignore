@@ -1,5 +1,11 @@
 known_faces/
 __pycache__/
 *.pyc
+*.pyo
 .env
 secrets.h
+
+# Mosquitto
+mosquitto/data/
+mosquitto/log/
+mosquitto/config/passwd

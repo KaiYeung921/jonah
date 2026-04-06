@@ -80,7 +80,14 @@ def publish(topic, message):
         client.publish(topic, message)
 
 # --- Camera ---
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    print("Camera index 0 failed, trying index 1...")
+    cap = cv2.VideoCapture(1)
+if not cap.isOpened():
+    print("No camera found, exiting.")
+    exit(1)
+
 last_check = 0
 
 print("Running... press 'q' to quit")
@@ -89,12 +96,6 @@ while True:
     ret, frame = cap.read()
     if not ret:
         print("Can't grab frame")
-        break
-
-    cv2.imshow("Face Lock", frame)
-    key = cv2.waitKey(1) & 0xFF
-
-    if key == ord('q'):
         break
 
     now = time.time()
@@ -133,4 +134,3 @@ while True:
         publish(TOPIC_FACE_DETECTION, '{"match": false}')
 
 cap.release()
-cv2.destroyAllWindows()

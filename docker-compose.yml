@@ -16,4 +16,8 @@ services:
       - mosquitto
     env_file:
       - .env
+    privileged: true
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
   
