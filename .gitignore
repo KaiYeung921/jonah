@@ -1,0 +1,4 @@
+known_faces/
+__pycache__/
+*.pyc
+.env
