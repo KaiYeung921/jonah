@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13-slim 
 WORKDIR /usr/local/app
 
 COPY requirements.txt ./
@@ -11,4 +11,5 @@ RUN useradd app
 USER app
 
 CMD ["python3","main.py"]
+
 
