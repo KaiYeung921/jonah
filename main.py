@@ -9,6 +9,11 @@ import os
 
 load_dotenv()
 
+# Pre-warm DeepFace model so first detection isn't slow
+print("Loading ArcFace model...")
+DeepFace.build_model("ArcFace")
+print("Model ready.")
+
 # --- CONFIG ---
 AUTHORIZED = {
     "kai":   "known_faces/Kai/Kai.jpg",
@@ -19,7 +24,7 @@ CHECK_INTERVAL = 7    # seconds between face scans
 LOCK_DELAY     = 5    # seconds after door closes before re-locking
 LOCK_TIMEOUT   = 30   # fallback: re-lock this many seconds after unlock if reed never fires
 
-DRY_RUN = True  # set False when connected to broker
+DRY_RUN = False
 
 # --- MQTT topics (must match firmware.cpp) ---
 TOPIC_LOCK_COMMAND   = "door/lock/command"
@@ -45,7 +50,6 @@ def relock():
     print("Relocked")
 
 def schedule_relock(delay):
-    """Cancel any pending relock and schedule a new one."""
     global relock_timer
     if relock_timer:
         relock_timer.cancel()
@@ -59,7 +63,6 @@ def on_lock_state(client, userdata, msg):
 def on_reed(client, userdata, msg):
     state = msg.payload.decode()
     print(f"[reed] {state}")
-    # Door just closed after being unlocked → start re-lock countdown
     if state == "closed" and door_unlocked:
         schedule_relock(LOCK_DELAY)
 
@@ -88,21 +91,12 @@ if not cap.isOpened():
     print("No camera found, exiting.")
     exit(1)
 
-last_check = 0
+# --- Detection runs in a background thread so camera keeps draining ---
+detecting     = False
+detect_lock   = threading.Lock()
 
-print("Running... press 'q' to quit")
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("Can't grab frame")
-        break
-
-    now = time.time()
-    if now - last_check < CHECK_INTERVAL:
-        continue
-    last_check = now
-
+def run_detection(frame):
+    global door_unlocked, detecting
     recognized = False
     for name, ref_img in AUTHORIZED.items():
         try:
@@ -122,7 +116,6 @@ while True:
                 door_unlocked = True
                 publish(TOPIC_FACE_DETECTION, f'{{"match": true, "identity": "{name}"}}')
                 publish(TOPIC_LOCK_COMMAND, "unlock")
-                # Fallback relock if reed switch never reports door closed
                 schedule_relock(LOCK_TIMEOUT)
                 break
 
@@ -132,5 +125,29 @@ while True:
     if not recognized:
         print("Denied")
         publish(TOPIC_FACE_DETECTION, '{"match": false}')
+
+    with detect_lock:
+        detecting = False
+
+last_check = 0
+print("Running... press 'q' to quit")
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        print("Can't grab frame")
+        break
+
+    now = time.time()
+    if now - last_check < CHECK_INTERVAL:
+        continue
+
+    with detect_lock:
+        if detecting:
+            continue
+        detecting = True
+
+    last_check = now
+    threading.Thread(target=run_detection, args=(frame.copy(),), daemon=True).start()
 
 cap.release()

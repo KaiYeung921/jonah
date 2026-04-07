@@ -16,6 +16,10 @@ services:
       - mosquitto
     env_file:
       - .env
+    environment:
+      - CUDA_VISIBLE_DEVICES=-1
+      - TF_CPP_MIN_LOG_LEVEL=3
+      - PYTHONUNBUFFERED=1
     privileged: true
     devices:
       - /dev/video0:/dev/video0

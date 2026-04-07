@@ -2,12 +2,11 @@
 #include <PubSubClient.h>
 #include <ESP32Servo.h>
 
-// --- FILL THESE IN ---
-const char* ssid       = "YOUR_WIFI";
-const char* password   = "YOUR_WIFI_PASSWORD";
-const char* mqttServer = "YOUR_BROKER_IP";
-const char* mqttUser   = "open_sesame";
-const char* mqttPass   = "YOUR_MQTT_PASSWORD";
+const char* ssid       = "Claremont-ETC";
+const char* password   = "Cl@remontI0T";
+const char* mqttServer = "172.28.121.73";
+const char* mqttUser   = "jonah";
+const char* mqttPass   = "jfr";
 
 // --- SERVO ---
 const int SERVO_PIN = 13;
@@ -23,9 +22,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println("Received: " + message);
 
     if (message == "unlock") {
-        Serial.println("Face detected — sweeping to 45°");
-        doorServo.write(45);
-        delay(3000);           // hold for 3 seconds
+        Serial.println("Face detected — sweeping to 52°");
+        doorServo.write(52);
+        delay(3000);
         doorServo.write(0);
         Serial.println("Returned to 0°");
     }
