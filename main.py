@@ -20,7 +20,7 @@ AUTHORIZED = {
     "misha": "known_faces/Misha/Misha.jpg",
 }
 MODEL          = "ArcFace"
-CHECK_INTERVAL = 7    # seconds between face scans
+CHECK_INTERVAL = 4    # seconds between face scans
 LOCK_DELAY     = 5    # seconds after door closes before re-locking
 LOCK_TIMEOUT   = 30   # fallback: re-lock this many seconds after unlock if reed never fires
 
@@ -66,15 +66,32 @@ def on_reed(client, userdata, msg):
     if state == "closed" and door_unlocked:
         schedule_relock(LOCK_DELAY)
 
+camera_url = None
+camera_url_event = threading.Event()
+
+def on_camera_status(client, userdata, msg):
+    global camera_url
+    camera_url = msg.payload.decode()
+    print(f"ESP32-CAM stream URL: {camera_url}")
+    camera_url_event.set()
+
 if not DRY_RUN:
     client = mqtt.Client()
     client.username_pw_set(MQTT_USER, MQTT_PASS)
     client.message_callback_add(TOPIC_LOCK_STATE, on_lock_state)
     client.message_callback_add(TOPIC_REED, on_reed)
+    client.message_callback_add("door/camera/status", on_camera_status)
     client.connect(MQTT_BROKER, MQTT_PORT, 60)
     client.subscribe(TOPIC_LOCK_STATE)
     client.subscribe(TOPIC_REED)
+    client.subscribe("door/camera/status")
     client.loop_start()
+
+    print("Waiting for ESP32-CAM stream URL...")
+    camera_url_event.wait(timeout=15)
+    if not camera_url:
+        print("ESP32-CAM did not respond within 15 seconds, exiting.")
+        exit(1)
 
 def publish(topic, message):
     if DRY_RUN:
@@ -83,12 +100,10 @@ def publish(topic, message):
         client.publish(topic, message)
 
 # --- Camera ---
-cap = cv2.VideoCapture(0)
+print(f"Connecting to ESP32-CAM stream: {camera_url}")
+cap = cv2.VideoCapture(camera_url)
 if not cap.isOpened():
-    print("Camera index 0 failed, trying index 1...")
-    cap = cv2.VideoCapture(1)
-if not cap.isOpened():
-    print("No camera found, exiting.")
+    print("Failed to open ESP32-CAM stream, exiting.")
     exit(1)
 
 # --- Detection runs in a background thread so camera keeps draining ---
