@@ -1,19 +1,7 @@
 services:
-  mosquitto:
-    image: eclipse-mosquitto:latest
-    container_name: mosquitto
-    restart: unless-stopped
-    ports:
-      - "1883:1883"      # Default MQTT port
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
-
   app:
     build: .
-    depends_on:
-      - mosquitto
+    network_mode: "host"
     env_file:
       - .env
     environment:
@@ -21,7 +9,4 @@ services:
       - TF_CPP_MIN_LOG_LEVEL=3
       - PYTHONUNBUFFERED=1
     privileged: true
-    devices:
-      - /dev/video0:/dev/video0
-      - /dev/video1:/dev/video1
   

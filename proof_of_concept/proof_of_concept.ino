@@ -23,7 +23,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     if (message == "unlock") {
         Serial.println("Face detected — sweeping to 52°");
-        doorServo.write(52);
+        doorServo.write(180);
         delay(3000);
         doorServo.write(0);
         Serial.println("Returned to 0°");
