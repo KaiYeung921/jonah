@@ -1,6 +1,6 @@
 # Jonah
 
-Facial recognition door lock built with DeepFace + ESP32 + MQTT.
+Me and my roomate built a program that will unlock our door when it detects our face. Built with DeepFace + ESP32 + MQTT.
 
 ## How It Works
 1. Camera detects face and runs ArcFace verification
